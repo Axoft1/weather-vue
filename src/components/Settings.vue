@@ -1,26 +1,32 @@
 <script lang="ts" setup>
-import { PropType, ref } from 'vue'
 import { onDragStart } from '../utils'
 
 const props = defineProps({
   citys: {
-    type: Object,
+    type: Object || null,
     required: true
   },
-  onDrop:{
-    type: Object,
+  citySetting: {
+    type: String,
     required: true
   },
-  deleteItem:{
-    type: Object,
+  onDrop: {
+    type: Function,
     required: true
   },
-  addCity:{
-    type: Object,
+  deleteItem: {
+    type: Function,
+    required: true
+  },
+  addCity: {
+    type: Function,
+    required: true
+  },
+  searchCity: {
+    type: Function,
     required: true
   }
 })
-const city = ref('')
 </script>
 <template>
   <div class="settings">
@@ -30,7 +36,7 @@ const city = ref('')
         style="background: url('/public/weather-main/delete.png') no-repeat; background-size: contain; width: 20px; height: 20px;">
       </div>
       <div :key="item.id" @dragstart="onDragStart($event, item)" class="draggable" draggable="true">
-        <p>{{ item.name }}</p>
+        <p @click="searchCity(item.name)">{{ item.name }}</p>
         <div
           style="background: url('/public/weather-main/burger.png') no-repeat; background-size: contain; width: 20px; height: 20px;">
         </div>
@@ -38,13 +44,18 @@ const city = ref('')
     </div>
     <div>
       <label for="">Add Location:</label>
-      <input v-model="city" class="inputCity" type="text" placeholder="City" @keyup.enter="addCity(city)">
+      <input class="inputCity" type="text" placeholder="City"
+        @keyup.enter="event => { 
+          const target = event.target as HTMLTextAreaElement; 
+          addCity(target.value ? target.value : ''); 
+          target.value = '' 
+          }">
     </div>
   </div>
 </template>
 <style lang="sass" scoped>
 .settings
-  width: 40%
+  width: 300px
   position: absolute
   top: 0
   right: 0
@@ -62,6 +73,8 @@ const city = ref('')
   justify-content: end
   gap: 15px
   align-items: center
+  &:first-child
+    color: yellow
 .draggable
   display: flex
   gap: 10px

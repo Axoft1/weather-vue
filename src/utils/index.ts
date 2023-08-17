@@ -20,3 +20,18 @@ export const onDragStart = (e: DragEvent, item: IItems)=> {
   e.dataTransfer!.effectAllowed = "move"
   e.dataTransfer?.setData('itemId', item.id.toString())
 }
+
+
+// function deleteItem(id: number) {
+//   citys.value = citys.value!.filter((e) => e.id !== id);
+// }
+
+// const citys = ref();
+
+// function addCity(str: string) { 
+//     citys.value.push({ id: 1, name: str }); 
+// }
+
+// watch(citys, () => {
+//   localStorage.setItem("citys", JSON.stringify(citys.value));
+// });

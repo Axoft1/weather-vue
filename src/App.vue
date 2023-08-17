@@ -1,53 +1,78 @@
 <script lang="ts" setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { API_KEY, BASE_URL } from './constants'
-import WeatherSummary from './components/weathersummary.vue';
+import WeatherSummary from './components/WeatherSummary.vue';
 import Highlights from './components/Highlights.vue';
 import Humidity from './components/Humidity.vue';
 import Coords from './components/Coords.vue';
 import { capitalizeFirstLetter } from './utils'
 import Settings from './components/Settings.vue'
-import {IItems} from './types'
+import { IItems, IWeatherInfo } from './types'
 
-const city = ref('Novosibirsk')
-const citys = ref<IItems[] | null>(null)
-const weatherInfo = ref(null)
-const settingsShow = ref(true)
+const city = ref<string>('')
+const citys = ref<IItems[]>([])
+const weatherInfo = ref<IWeatherInfo | null>(null)
+const settingsShow = ref(false)
 const isError = computed(() => weatherInfo.value?.cod !== 200)
 
-watch(citys,()=>{
-  console.log(citys);
-  localStorage.setItem('citys', JSON.stringify(citys.value))
-})
+watch(citys, () => {
+  localStorage.setItem('citys', JSON.stringify(citys.value))  
+}, { deep: true })
+function geolocationOfCity (lat:number, lon: number){
+  fetch(`${BASE_URL}?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`)
+    .then((response) => response.json())
+    .then((data) => weatherInfo.value =data)
+}
+if ("geolocation" in navigator) {
+   navigator.geolocation.getCurrentPosition(function (position) {
+    geolocationOfCity(position.coords.latitude, position.coords.longitude);
+  });
+} else {
+  console.log('not geolocation')
+}
 
 function getWeather() {
-  fetch(`${BASE_URL}?q=${city.value}&units=metric&appid=${API_KEY}`)
+  let value = ''
+  if (city.value) {
+    value = city.value
+  } else if (citys?.value[0]?.name) {
+    value = citys?.value[0]?.name
+  } 
+  // else if (!city.value) {
+  //   let cityPromt = prompt('s') as string
+  //   value = cityPromt
+  //   citys.value = [{ id: 1, name: cityPromt }]
+  //   localStorage.setItem('citys', JSON.stringify([{ id: 1, name: cityPromt }]))
+  // }
+  fetch(`${BASE_URL}?q=${value}&units=metric&appid=${API_KEY}`)
     .then((response) => response.json())
     .then((data) => weatherInfo.value = data)
 }
 function getLocal() {
-  const local = localStorage.getItem('citys');  
-  if(local !== null){
+  const local = localStorage.getItem('citys');
+  if (local === 'undefined') {
+    localStorage.removeItem('citys');
+  } else if (local !== null) {
     citys.value = JSON.parse(local)
   }
 }
-
+function searchCity(str: string) {
+  city.value = str
+  getWeather()
+}
 function deleteItem(id: number) {
   citys.value = citys.value!.filter(e => e.id !== id)
 }
-function addCity(city) {
-  console.log(city);
-  if (!city) {    
+function addCity(str: string) {
+  if (!str) {
     return
   }
-  
-  const id = Math.round(Math.random() * 10)
-  const findindex = citys.value!.findIndex(ite => ite.id === id)
+  const id = Math.round(Math.random() * 10) as number
+  const findindex = citys.value ? citys.value!.findIndex(ite => ite.id === id) : -1
   if (findindex === -1) {
-    citys.value!.push({ id: id, name: city })
-    
+    citys.value.push({ id: id, name: str })
   } else {
-    addCity(city)
+    addCity(str)
   }
 }
 function onDrop(e: DragEvent, item: number) {
@@ -60,7 +85,7 @@ function onDrop(e: DragEvent, item: number) {
   copycitys.splice(swappedElementIndex, 1, citys.value![elementIndex])
   citys.value = copycitys
 }
-onMounted(() => { getWeather(); getLocal() })
+onMounted(() => { getLocal(); getWeather() })
 </script>
 
 <template>
@@ -71,7 +96,8 @@ onMounted(() => { getWeather(); getLocal() })
           <div class="sections">
             <div @click="settingsShow = !settingsShow" class="settinsButton"
               :style="`background-image: url('/weather-main/${settingsShow ? 'cross' : 'settings'}.png')`"></div>
-            <Settings v-show="settingsShow" :citys="citys" :onDrop="onDrop" :deleteItem="deleteItem" :addCity="addCity"/>
+            <Settings v-show="settingsShow" :citys="citys" :citySetting="'citySetting'" :onDrop="onDrop"
+              :deleteItem="deleteItem" :addCity="addCity" :searchCity="searchCity" />
             <section :class="['section', 'section-left', { 'section-error': isError }]">
               <div class="info">
                 <div class="city-inner">
@@ -90,8 +116,8 @@ onMounted(() => { getWeather(); getLocal() })
             </section>
           </div>
           <div v-if="!isError" class="sections">
-            <Coords :coord="weatherInfo.coord" />
-            <Humidity :humidity="weatherInfo.main.humidity" />
+            <Coords :coord="weatherInfo!.coord" />
+            <Humidity :humidity="weatherInfo!.main.humidity" />
           </div>
         </div>
       </div>
