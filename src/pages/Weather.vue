@@ -18,6 +18,7 @@ const isError = computed(() => weatherInfo.value?.cod !== 200)
 watch(citys, () => {
     localStorage.setItem('citys', JSON.stringify(citys.value))
 }, { deep: true })
+
 function geolocationOfCity(lat: number, lon: number) {
     fetch(`${BASE_URL}?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`)
         .then((response) => response.json())
